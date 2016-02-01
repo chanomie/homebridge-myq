@@ -1,6 +1,33 @@
 # homebridge-myq
 Homebridge Plug for Chamberlain MyQ Garage Door
 
+# Installation
+ * Install homebridge using: npm install -g homebridge
+ * Install this plugin using: npm install -g homebridge-myq
+ * Update your configuration file. See the sample below.
+
+# Configuration
+
+Add the token to your config and restart homebridge.  Make sure to update the username
+and password the values you have set in the App.
+
+```
+    "platforms": [
+       {
+         "platform": "MyQ",
+         "name": "MyQ",
+         "MyQApplicationId": "NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx",
+         "UserAgent": "Chamberlain/2793 (iPhone; iOS 9.3; Scale/2.00)",
+         "BrandId": "2",
+         "culture": "en",
+         "username": "myusername@example.com",
+         "password": "supersecretpassword",
+         "loglevel":"0"
+       }
+    ],
+```
+
+
 # MyQ API
 
 ## validatewithculture

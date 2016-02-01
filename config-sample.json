@@ -1,0 +1,32 @@
+{
+    "bridge": {
+        "name": "Homebridge",
+        "username": "CC:22:3D:E3:CE:AA",
+        "port": 51826,
+        "pin": "031-45-154"
+    },
+    
+    "description": "This is an example configuration file with one fake accessory and one fake platform. You can use this as a template for creating your own configuration file containing devices you actually own.",
+    "platforms": [
+       {
+         "platform": "ConnectedByTcp",
+         "name": "ConnectedByTcp",
+         "ip": "172.16.1.40",
+         "token": "e2de937chr0lhrlqd6bus3l2z5jcy5p3vs7013bn",
+         "loglevel":"0"
+       },
+       {
+         "platform": "MyQ",
+         "name": "MyQ",
+         "MyQApplicationId": "NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx",
+         "UserAgent": "Chamberlain/2793 (iPhone; iOS 9.3; Scale/2.00)",
+         "BrandId": "2",
+         "culture": "en",
+         "username": "myusername@example.com",
+         "password": "supersecretpassword",
+         "loglevel":"0"
+       }
+    ],
+    "accessories": [
+    ]
+}
