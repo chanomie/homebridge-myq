@@ -1,6 +1,6 @@
 {
   "name": "homebridge-myq",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Chamberlain MyQ Garage plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "ISC",
   "keywords": [

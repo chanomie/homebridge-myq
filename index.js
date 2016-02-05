@@ -34,12 +34,25 @@ MyQ.prototype = {
     var self = this;
     
     self.log("accessories: in accessories");
-    self.validatewithculture(function() {
-      self.log("accessories: callback from validatewithculture");
-      self.userDeviceDetails(function(deviceDetails) {
-        self.registerAccessories(callback, deviceDetails);
+    try {
+      self.validatewithculture(function() {
+        self.log("accessories: callback from validatewithculture");
+        
+        try {
+          self.userDeviceDetails(function(deviceDetails) {
+            try {
+              self.registerAccessories(callback, deviceDetails);
+            } catch (err) {
+              self.log("accessories: exception in registerAccessories: " + err.message);
+            }
+          });
+        } catch (err) {
+          self.log("accessories: exception in userDeviceDetails: " + err.message);
+        }
       });
-    });
+    } catch (err) {
+      self.log("accessories: exception in validatewithculture: " + err.message);
+    }
   },
   registerAccessories: function (callback, deviceDetails) {
     var self = this;
@@ -95,31 +108,40 @@ MyQ.prototype = {
       'password': self.password,
       'culture': self.culture
     };
-    request({
-      "url": "https://myqexternal.myqdevice.com/api/user/validatewithculture",
-      'qs': queryString,
-      "method": "GET",
-      "headers": {
-        'User-Agent': self.UserAgent,
-        'BrandId': self.BrandId,
-        'Culture': self.culture,
-        'MyQApplicationId': self.MyQApplicationId,
-        'SecurityToken': self.SecurityToken
-      }
-    }, function(error, response, body) {
-      var bodyJson = JSON.parse(body);
-      if(bodyJson.SecurityToken) {
-        self.SecurityToken = bodyJson.SecurityToken;
-        self.log("Set new token [" + self.SecurityToken + "]");
-        if(callback) {
-          callback();
+    
+    try {
+      request({
+        "url": "https://myqexternal.myqdevice.com/api/user/validatewithculture",
+        'qs': queryString,
+        "method": "GET",
+        "headers": {
+          'User-Agent': self.UserAgent,
+          'BrandId': self.BrandId,
+          'Culture': self.culture,
+          'MyQApplicationId': self.MyQApplicationId,
+          'SecurityToken': self.SecurityToken
         }
-      } else {
-        self.log("error: " + error);
-        self.log("response: " + response);
-        self.log("body: " + body);
-      }
-    });
+      }, function(error, response, body) {
+        try {
+          var bodyJson = JSON.parse(body);
+          if(bodyJson.SecurityToken) {
+            self.SecurityToken = bodyJson.SecurityToken;
+            self.log("Set new token [" + self.SecurityToken + "]");
+          } else {
+            self.log("error: " + error);
+            self.log("response: " + response);
+            self.log("body: " + body);
+          }
+          if(callback) {
+            callback();
+          }
+        } catch (err) {
+          self.log("validatewithculture: exception in response validatewithculture: " + err.message);
+        }
+      });
+    } catch (err) {
+      self.log("validatewithculture: exception in request validatewithculture: " + err.message);
+    }
   },
   
   userDeviceDetails: function(callback) {
@@ -134,31 +156,40 @@ MyQ.prototype = {
       'format':'json',
       'nojsoncallback':'1'
     };
-    request({
-      "url": "https://myqexternal.myqdevice.com/api/v4/userdevicedetails/get",
-      'qs': queryString,
-      "method": "GET",
-      "headers": {
-        'User-Agent': self.UserAgent,
-        'BrandId': self.BrandId,
-        'Culture': self.culture,
-        'MyQApplicationId': self.MyQApplicationId,
-        'SecurityToken': self.SecurityToken
-      }
-    }, function(error, response, body) {
-      self.log("userDeviceDetails: got api response.");
-      var bodyJson = JSON.parse(body);
+    
+    try {
+      request({
+        "url": "https://myqexternal.myqdevice.com/api/v4/userdevicedetails/get",
+        'qs': queryString,
+        "method": "GET",
+        "headers": {
+          'User-Agent': self.UserAgent,
+          'BrandId': self.BrandId,
+          'Culture': self.culture,
+          'MyQApplicationId': self.MyQApplicationId,
+          'SecurityToken': self.SecurityToken
+        }
+      }, function(error, response, body) {
+        try {
+          self.log("userDeviceDetails: got api response.");
+          var bodyJson = JSON.parse(body);
       
-      self.log("userDeviceDetails: got results, checking callback");
-      if(callback) {
-        self.log("userDeviceDetails: making callback");
-        callback(bodyJson);
-      }
+          self.log("userDeviceDetails: got results, checking callback");
+          if(callback) {
+            self.log("userDeviceDetails: making callback");
+            callback(bodyJson);
+          }        
           
-      // self.log("error: " + error);
-      // self.log("response: " + response);
-      // self.log("body: " + body);
-    });  
+          // self.log("error: " + error);
+          // self.log("response: " + response);
+          // self.log("body: " + body);
+        } catch (err) {
+          self.log("userDeviceDetails: exception in response userDeviceDetails: " + err.message);
+        }
+      });  
+    } catch (err) {
+      self.log("userDeviceDetails: exception in request userDeviceDetails: " + err.message);
+    }
   },
   
   getDeviceAttribute: function(myQDeviceId, attributeName, callback) {
@@ -172,32 +203,40 @@ MyQ.prototype = {
       'myQDeviceId': myQDeviceId,
       'attributeName': attributeName
     };
-    request({
-      "url": "https://myqexternal.myqdevice.com/api/v4/deviceattribute/getdeviceattribute",
-      'qs': queryString,
-      "method": "GET",
-      "headers": {
-        'Content-Type': 'application/json',
-        'User-Agent': self.UserAgent,
-        'MyQApplicationId': self.MyQApplicationId,
-        'SecurityToken': self.SecurityToken,
-        'BrandId': self.BrandId,
-        'Culture': self.culture
-      }
-    }, function(error, response, body) {
-      self.log("getDeviceAttribute: got api response.");
-      var bodyJson = JSON.parse(body);
+    try {
+      request({
+        "url": "https://myqexternal.myqdevice.com/api/v4/deviceattribute/getdeviceattribute",
+        'qs': queryString,
+        "method": "GET",
+        "headers": {
+          'Content-Type': 'application/json',
+          'User-Agent': self.UserAgent,
+          'MyQApplicationId': self.MyQApplicationId,
+          'SecurityToken': self.SecurityToken,
+          'BrandId': self.BrandId,
+          'Culture': self.culture
+        }
+      }, function(error, response, body) {
+        try {
+          self.log("getDeviceAttribute: got api response.");
+          var bodyJson = JSON.parse(body);
       
-      self.log("getDeviceAttribute: got results, checking callback");
-      if(callback) {
-        self.log("getDeviceAttribute: making callback");
-        callback(bodyJson);
-      }
+          self.log("getDeviceAttribute: got results, checking callback");
+          if(callback) {
+            self.log("getDeviceAttribute: making callback");
+            callback(bodyJson);
+          }
           
-      // self.log("error: " + error);
-      // self.log("response: " + response);
-      // self.log("body: " + body);
-    });
+          // self.log("error: " + error);
+          // self.log("response: " + response);
+          // self.log("body: " + body);
+        } catch (err) {
+          self.log("getDeviceAttribute: exception in response getDeviceAttribute: " + err.message);
+        }
+      });
+    } catch (err) {
+      self.log("getDeviceAttribute: exception in request getDeviceAttribute: " + err.message);
+    }
   },
   
   putDeviceAttribute: function(myQDeviceId, attributeName, attributeValue, callback) {
@@ -208,42 +247,49 @@ MyQ.prototype = {
       'appId': self.MyQApplicationId,
       'SecurityToken': self.SecurityToken
     };
-    request({
-      "url": "https://myqexternal.myqdevice.com/api/v4/DeviceAttribute/PutDeviceAttribute",
-      'qs': queryString,
-      "method": "PUT",
-      "headers": {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': self.UserAgent,
-        'MyQApplicationId': self.MyQApplicationId,
-        'SecurityToken': self.SecurityToken,
-        'BrandId': self.BrandId,
-        'Culture': self.culture
-      },
-      body: "ApplicationId=" + encodeURIComponent(self.MyQApplicationId) 
-            + "&AttributeName=" + encodeURIComponent(attributeName)
-            + "&AttributeValue=" + encodeURIComponent(attributeValue)
-            + "&MyQDeviceId=" + encodeURIComponent(myQDeviceId)
-            + "&SecurityToken=" + encodeURIComponent(self.SecurityToken)
-            + "&format=json&nojsoncallback=1"
-    }, function(error, response, body) {
-      self.log("putDeviceAttribute: got api response.");
-      var bodyJson = JSON.parse(body);
+    
+    try {
+      request({
+        "url": "https://myqexternal.myqdevice.com/api/v4/DeviceAttribute/PutDeviceAttribute",
+        'qs': queryString,
+        "method": "PUT",
+        "headers": {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': self.UserAgent,
+          'MyQApplicationId': self.MyQApplicationId,
+          'SecurityToken': self.SecurityToken,
+          'BrandId': self.BrandId,
+          'Culture': self.culture
+        },
+        body: "ApplicationId=" + encodeURIComponent(self.MyQApplicationId) 
+              + "&AttributeName=" + encodeURIComponent(attributeName)
+              + "&AttributeValue=" + encodeURIComponent(attributeValue)
+              + "&MyQDeviceId=" + encodeURIComponent(myQDeviceId)
+              + "&SecurityToken=" + encodeURIComponent(self.SecurityToken)
+              + "&format=json&nojsoncallback=1"
+      }, function(error, response, body) {
+        try {
+          self.log("putDeviceAttribute: got api response.");
+          var bodyJson = JSON.parse(body);
 
-      if(self.loglevel >= 3) {
-        self.log("error: " + error);
-        self.log("response: " + response);
-        self.log("body: " + body);
-      };
-
-      
-      self.log("putDeviceAttribute: got results, checking callback");
-      if(callback) {
-        self.log("putDeviceAttribute: making callback");
-        callback(bodyJson);
-      }
-          
-    });
+          if(self.loglevel >= 3) {
+            self.log("error: " + error);
+            self.log("response: " + response);
+            self.log("body: " + body);
+          };
+    
+          self.log("putDeviceAttribute: got results, checking callback");
+          if(callback) {
+            self.log("putDeviceAttribute: making callback");
+            callback(bodyJson);
+          }       
+        } catch (err) {
+          self.log("putDeviceAttribute: exception in response putDeviceAttribute: " + err.message);
+        }
+      });
+    } catch (err) {
+      self.log("putDeviceAttribute: exception in request putDeviceAttribute: " + err.message);
+    }
   
   
   }
