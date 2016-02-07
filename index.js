@@ -219,17 +219,27 @@ MyQ.prototype = {
       }, function(error, response, body) {
         try {
           self.log("getDeviceAttribute: got api response.");
-          var bodyJson = JSON.parse(body);
-      
-          self.log("getDeviceAttribute: got results, checking callback");
-          if(callback) {
-            self.log("getDeviceAttribute: making callback");
-            callback(bodyJson);
-          }
+          var jsonBody = JSON.parse(body);
+          if(self.loglevel >= 3) {
+            self.log("error: " + error);
+            self.log("response: " + response);
+            self.log("body: " + body);
+          };
           
-          // self.log("error: " + error);
-          // self.log("response: " + response);
-          // self.log("body: " + body);
+          if(jsonBody["ReturnCode"] == "-3333") {
+            // "-3333" means the token has expired and needs to login again and
+            // then retry this method.
+            self.log("getDeviceAttribute: got '-3333' so trying again.");
+            validatewithculture(function() {
+              self.getDeviceAttribute(myQDeviceId, attributeName, callback);
+            });
+          } else {
+            self.log("getDeviceAttribute: got results, checking callback");
+            if(callback) {
+              self.log("getDeviceAttribute: making callback");
+              callback(jsonBody);
+            }
+          }  
         } catch (err) {
           self.log("getDeviceAttribute: exception in response getDeviceAttribute: " + err.message);
         }
@@ -277,12 +287,21 @@ MyQ.prototype = {
             self.log("response: " + response);
             self.log("body: " + body);
           };
-    
-          self.log("putDeviceAttribute: got results, checking callback");
-          if(callback) {
-            self.log("putDeviceAttribute: making callback");
-            callback(bodyJson);
-          }       
+          
+          if(jsonBody["ReturnCode"] == "-3333") {
+            // "-3333" means the token has expired and needs to login again and
+            // then retry this method.
+            self.log("putDeviceAttribute: got '-3333' so trying again.");
+            validatewithculture(function() {
+              self.putDeviceAttribute(myQDeviceId, attributeName, attributeValue, callback);
+            });
+          } else {
+            self.log("putDeviceAttribute: got results, checking callback");
+            if(callback) {
+              self.log("putDeviceAttribute: making callback");
+              callback(bodyJson);
+            }       
+          }
         } catch (err) {
           self.log("putDeviceAttribute: exception in response putDeviceAttribute: " + err.message);
         }
@@ -326,28 +345,32 @@ function MyQGarage(myQ, log) {
 
 MyQGarage.prototype = {
   getCurrentDoorState: function(callback) {
-    var self = this;
+    var self = this,
+        returnDoorState = DoorState.CLOSING;
     
     self.myQ.getDeviceAttribute(self.myQDeviceId, 'doorstate', function(jsonBody) {
+      var returnCode = jsonBody["ReturnCode"];
+      self.log("getCurrentDoorState: return code is [%s]", returnCode);
       if(jsonBody["ReturnCode"] == "0") {
         self.doorstate = jsonBody["AttributeValue"];
         self.log("getCurrentDoorState: value is [%s]", self.doorstate);
         if(self.doorstate == MyQDoorState.CLOSED) {
           self.lastdoorstate = MyQDoorState.CLOSED;
-          callback(null,DoorState.CLOSED);
+          returnDoorState = DoorState.CLOSED;
         } else if(self.doorstate == MyQDoorState.OPEN) {
           self.lastdoorstate = MyQDoorState.OPEN;
-          callback(null,DoorState.OPEN);
+          returnDoorState = DoorState.OPEN;
         } else if(self.doorstate == MyQDoorState.MOVING) {
           if(self.lastdoorstate == MyQDoorState.CLOSED) {
-            callback(null,DoorState.OPENING);
+            returnDoorState = DoorState.OPENING;
           } else {
-            callback(null,DoorState.CLOSING);
+            returnDoorState = DoorState.CLOSING;
           }
         } else {
-          callback(null,DoorState.OPEN);
+          returnDoorState = DoorState.OPEN;
         }
       }
+      callback(null, returnDoorState);
     });
     
   },
