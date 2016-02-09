@@ -1,3 +1,8 @@
+# Project Retired
+
+Already an existing project that does this called "Liftmaster":
+https://github.com/nfarina/homebridge-liftmaster
+
 # homebridge-myq
 Homebridge Plug for Chamberlain MyQ Garage Door
 
