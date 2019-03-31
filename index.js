@@ -21,8 +21,6 @@ function MyQ(log, config) {
   this.log        = log;
   this.MyQApplicationId = config["MyQApplicationId"];
   this.UserAgent        = config["UserAgent"];
-  this.culture          = config["culture"];
-  this.BrandId          = config["BrandId"];
   this.username         = config["username"];
   this.password         = config["password"];
   this.loglevel         = config["loglevel"];

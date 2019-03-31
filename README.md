@@ -22,39 +22,58 @@ and password the values you have set in the App.
          "platform": "MyQ",
          "name": "MyQ",
          "MyQApplicationId": "NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx",
-         "UserAgent": "Chamberlain/2793 (iPhone; iOS 9.3; Scale/2.00)",
-         "BrandId": "2",
-         "culture": "en",
+         "UserAgent": "Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0",
          "username": "myusername@example.com",
          "password": "supersecretpassword",
          "loglevel":"0"
        }
+
     ],
 ```
 
 
 # MyQ API
 
-## validatewithculture
-
-The initial request is used to validate the connection with MyQ servers.
+## 1) Execute the Login API to get Security Token
 
 ### Required Headers
-
+POST https://api.myqdevice.com/api/v5/Login
 * 'Content-Type': 'application/json',
-* 'User-Agent': 'Chamberlain/2793 (iPhone; iOS 9.3; Scale/2.00)',
-* 'BrandId' - my BrandId is "2" for the garage I have.
-* 'Culture' - my culture is 'en' - maybe others are supported?
-* 'MyQApplicationId': "NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx"
-   I think this is a hardcoded value representing the iOS app.
-* 'SecurityToken' - self.SecurityToken
+* 'User-Agent': 'Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0'
+* 'MyQApplicationId': 'NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx'
 
-### URL Paramaters
+### JSON Body
+* UserName
+* Password
 
-* 'appId': self.MyQApplicationId,
-* 'SecurityToken': self.SecurityToken,
-* 'username': self.username,
-* 'password': self.password,
-* 'culture': self.culture
+```
+myqToken=$(curl -s -X POST -H "Content-Type: application/json" -H "User-Agent: Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0" -H "MyQApplicationId: NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx" -d "{\"UserName\":\"$myqUsername\",\"Password\":\"$myqPassword\"}" "https://api.myqdevice.com/api/v5/Login" | jq -r .SecurityToken)
+```
+
+## 2) Get Account Id
+GET https://api.myqdevice.com/api/v5/My?expand=account
+
+
+```
+myqAccountId=$(curl -s -G -H "User-Agent: Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0" -H "MyQApplicationId: NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx" -H "SecurityToken: ${myqToken}" "https://api.myqdevice.com/api/v5/My?expand=account" | jq -r .Account.Id)
+```
+
+## 3) Get Devices and State
+
+```
+curl -s -H "User-Agent: Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0" -H "MyQApplicationId: NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx" -H "SecurityToken: ${myqToken}" "https://api.myqdevice.com/api/v5.1/Accounts/${myqAccountId}/Devices" | jq .
+```
+
+## Open the Garage Door
+
+### Required Headers
+PUT https://api.myqdevice.com/api/v5.1/Accounts/${myqAccountId}/Devices/${myqDeviceId}/actions
+* 'Content-Type': 'application/json',
+* 'User-Agent': 'Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0'
+* 'MyQApplicationId': 'NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx'
+
+### JSON Body
+* action_type: open
+
 
 
