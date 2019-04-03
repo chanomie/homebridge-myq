@@ -7,18 +7,12 @@ module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   DoorState = homebridge.hap.Characteristic.CurrentDoorState;
-  MyQDoorState = {};
-  MyQDoorState.OPEN = "9",
-  MyQDoorState.CLOSED = "2",
-  MyQDoorState.MOVING = "8",
-  MyQDoorState.TARGET_OPEN = "1",
-  MyQDoorState.TARGET_CLOSED = "0";
 
   homebridge.registerPlatform("homebridge-myq", "MyQ", MyQ);
 };
 
 function MyQ(log, config) {
-  this.log        = log;
+  this.log              = log;
   this.MyQApplicationId = config["MyQApplicationId"];
   this.UserAgent        = config["UserAgent"];
   this.username         = config["username"];
@@ -28,10 +22,31 @@ function MyQ(log, config) {
 };
 
 MyQ.prototype = {
+  /**
+   * The accessories function is called as part of the Homebridge module initialization.
+   * The purpose is to return an Array of Devices to callback which will then appear
+   * inside of HomeBridge
+   */
   accessories: function (callback) {
     var self = this;
     
-    self.log("accessories: in accessories");
+    if(self.loglevel > 1) self.log("accessories: In accessories to initiallize");
+    try {
+      // the initial request is to Login to get back the SecurityToken that is
+      // added to the headers of additional functions.
+      self.login(function() {
+        if(self.loglevel > 1) self.log("accessories: callback from login function");
+        
+        // After login is complete, the Account ID for the user is required to be included
+        // in the URL path of requests to specific devices
+        self.accountId(function() {
+        	if(self.loglevel > 1) self.log("accessories: callback from accountId function");
+        });
+      });
+    } catch (err) {
+      self.log("accessories: exception in login: " + err.message);
+    }
+    /*
     try {
       self.validatewithculture(function() {
         self.log("accessories: callback from validatewithculture");
@@ -51,8 +66,19 @@ MyQ.prototype = {
     } catch (err) {
       self.log("accessories: exception in validatewithculture: " + err.message);
     }
+    */
   },
+  
+  /**
+   * This internal method is called by the accessories method to register
+   * the hubs and garage doors into the Device Details that are passed back
+   * to homebridge. The DeviceDetails array should be filled up with objects
+   * of either:
+   * - MyQHub - returns information about the hub
+   * - MyQGarage - returns a garage that can be opened/close/queried
+   */
   registerAccessories: function (callback, deviceDetails) {
+  	/*
     var self = this;
     
     for(var i=0; i<deviceDetails["Devices"].length; i++) {
@@ -90,41 +116,36 @@ MyQ.prototype = {
         }
         self.devices.push(newDevice);
       }
-
     }
     
     callback(self.devices);
+    */
   },
 
-  validatewithculture: function(callback) {
-    var self = this;
-    
-    var queryString = {
-      'appId': self.MyQApplicationId,
-      'SecurityToken': self.SecurityToken,
-      'username': self.username,
-      'password': self.password,
-      'culture': self.culture
-    };
-    
-    try {
-      request({
-        "url": "https://myqexternal.myqdevice.com/api/user/validatewithculture",
-        'qs': queryString,
-        "method": "GET",
-        "headers": {
-          'User-Agent': self.UserAgent,
-          'BrandId': self.BrandId,
-          'Culture': self.culture,
-          'MyQApplicationId': self.MyQApplicationId,
-          'SecurityToken': self.SecurityToken
-        }
+  /**
+   * This is an internal function used as part of startup to get back a security token
+   * which is set to the object as:
+   *. - self.SecurityToken
+   */
+  login: function(callback) {
+  	var self = this;
+  	
+    if(self.loglevel > 1) self.log("login: method start");  	
+    request({
+      "url": "https://api.myqdevice.com/api/v5/Login",
+      "method": "POST",
+      "headers": {
+        'Content-Type': 'application/json',
+        'User-Agent': self.UserAgent,
+        'MyQApplicationId': self.MyQApplicationId
+      },
+      "json": true,
+      "body": {'UserName':self.username,'Password':self.password}
       }, function(error, response, body) {
         try {
-          var bodyJson = JSON.parse(body);
-          if(bodyJson.SecurityToken) {
-            self.SecurityToken = bodyJson.SecurityToken;
-            self.log("Set new token [" + self.SecurityToken + "]");
+          if(body.SecurityToken) {
+            self.SecurityToken = body.SecurityToken;
+            if(self.loglevel > 0) self.log("login: Set new token [" + self.SecurityToken + "]");
           } else {
             self.log("error: " + error);
             self.log("response: " + response);
@@ -134,19 +155,57 @@ MyQ.prototype = {
             callback();
           }
         } catch (err) {
-          self.log("validatewithculture: exception in response validatewithculture: " + err.message);
+            self.log("error: " + error);
+            self.log("response: " + response);
+            self.log("body: " + body);
         }
-      });
-    } catch (err) {
-      self.log("validatewithculture: exception in request validatewithculture: " + err.message);
-    }
+      	
+      })
   },
+  
+  /**
+   * This is an internal function used as part of startup to get the user's account id
+   * which is then used in the URL of subsequent REST API calls
+   */
+  accountId: function(callback) {
+  	var self = this;
+  	
+    if(self.loglevel > 1) self.log("accountId: method start");  	
+    request({
+      "url": "https://api.myqdevice.com/api/v5/My?expand=account",
+      "method": "GET",
+      "headers": {
+        'User-Agent': self.UserAgent,
+        'MyQApplicationId': self.MyQApplicationId,
+        'SecurityToken': self.SecurityToken
+      },
+      "json": true
+      }, function(error, response, body) {
+        try {
+          if(body.Account.Id) {
+            self.AccountId = body.Account.Id;
+            if(self.loglevel > 0) self.log("login: Set new AccountId [" + self.AccountId + "]");
+          } else {
+            self.log("error: " + error);
+            self.log("response: " + response);
+            self.log("body: " + body);
+          }
+          if(callback) {
+            callback();
+          }
+        } catch (err) {
+            self.log("error: " + error);
+            self.log("response: " + response);
+            self.log("body: " + body);
+        }
+      })
+  },  
   
   userDeviceDetails: function(callback) {
     var self = this;
-        
     self.log("userDeviceDetails: starting.");
-    
+
+  	/*
     var queryString = {
       'appId': self.MyQApplicationId,
       'SecurityToken': self.SecurityToken,
@@ -188,9 +247,11 @@ MyQ.prototype = {
     } catch (err) {
       self.log("userDeviceDetails: exception in request userDeviceDetails: " + err.message);
     }
+    */
   },
   
   getDeviceAttribute: function(myQDeviceId, attributeName, callback) {
+  	/*
     var self = this;
         
     self.log("getDeviceAttribute: starting.");
@@ -245,9 +306,11 @@ MyQ.prototype = {
     } catch (err) {
       self.log("getDeviceAttribute: exception in request getDeviceAttribute: " + err.message);
     }
+    */
   },
   
   putDeviceAttribute: function(myQDeviceId, attributeName, attributeValue, callback) {
+  	/*
     var self = this;
         
     self.log("putDeviceAttribute: starting.");
@@ -307,8 +370,7 @@ MyQ.prototype = {
     } catch (err) {
       self.log("putDeviceAttribute: exception in request putDeviceAttribute: " + err.message);
     }
-  
-  
+    */
   }
 };
 
@@ -342,6 +404,7 @@ function MyQGarage(myQ, log) {
 
 
 MyQGarage.prototype = {
+  /*
   getCurrentDoorState: function(callback) {
     var self = this,
         returnDoorState = DoorState.CLOSING;
@@ -404,11 +467,13 @@ MyQGarage.prototype = {
       });
     }
   },
+  */
   getServices: function() {
     var self = this,
         garageService = new Service.GarageDoorOpener(this.name),
         informationService = new Service.AccessoryInformation();
     
+    /*
     garageService
       .getCharacteristic(Characteristic.CurrentDoorState)
       .on('get', this.getCurrentDoorState.bind(this));
@@ -422,7 +487,7 @@ MyQGarage.prototype = {
     informationService.setCharacteristic(Characteristic.Model, this.model);
     informationService.setCharacteristic(Characteristic.Name, this.deviceId);
     informationService.setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
-    
+    */
             
     return [informationService, garageService];
   }
