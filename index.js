@@ -40,33 +40,20 @@ MyQ.prototype = {
         // After login is complete, the Account ID for the user is required to be included
         // in the URL path of requests to specific devices
         self.accountId(function() {
-        	if(self.loglevel > 1) self.log("accessories: callback from accountId function");
+          if(self.loglevel > 1) self.log("accessories: callback from accountId function");
+          
+          // Make the query to get the Devices JSON object and pass it into the
+          // final function to register them.
+          if(self.loglevel > 1) self.log("accessories: calling into devices function");
+          self.getDevices(function(deviceDetails) {
+            if(self.loglevel > 1) self.log("accessories: callback from getDevices function");
+            self.registerAccessories(callback, deviceDetails);
+          });     
         });
       });
     } catch (err) {
-      self.log("accessories: exception in login: " + err.message);
+      self.log("accessories: exception in methods: " + err.message);
     }
-    /*
-    try {
-      self.validatewithculture(function() {
-        self.log("accessories: callback from validatewithculture");
-        
-        try {
-          self.userDeviceDetails(function(deviceDetails) {
-            try {
-              self.registerAccessories(callback, deviceDetails);
-            } catch (err) {
-              self.log("accessories: exception in registerAccessories: " + err.message);
-            }
-          });
-        } catch (err) {
-          self.log("accessories: exception in userDeviceDetails: " + err.message);
-        }
-      });
-    } catch (err) {
-      self.log("accessories: exception in validatewithculture: " + err.message);
-    }
-    */
   },
   
   /**
@@ -78,48 +65,32 @@ MyQ.prototype = {
    * - MyQGarage - returns a garage that can be opened/close/queried
    */
   registerAccessories: function (callback, deviceDetails) {
-  	/*
     var self = this;
     
-    for(var i=0; i<deviceDetails["Devices"].length; i++) {
-      if(deviceDetails["Devices"][i]["MyQDeviceTypeName"] == "VGDO") {
+    for(var i=0; i<deviceDetails["items"].length; i++) {
+      if(deviceDetails["items"][i]["device_family"] == "garagedoor") {
         var newDevice = new MyQGarage(self, self.log);
-        newDevice.model = "VGDO";
-        newDevice.serialNumber = deviceDetails["Devices"][i]["SerialNumber"];
-        newDevice.myQDeviceId = deviceDetails["Devices"][i]["MyQDeviceId"];
-        
-        
-        for(var j=0; j<deviceDetails["Devices"][i]["Attributes"].length; j++) {
-          if(deviceDetails["Devices"][i]["Attributes"][j]["AttributeDisplayName"] == "desc") {
-            newDevice.name = deviceDetails["Devices"][i]["Attributes"][j]["Value"];
-          } else if(deviceDetails["Devices"][i]["Attributes"][j]["AttributeDisplayName"] == "doorstate") {
-            newDevice.targetdoorstate = deviceDetails["Devices"][i]["Attributes"][j]["Value"];
-            newDevice.lastdoorstate = deviceDetails["Devices"][i]["Attributes"][j]["Value"];
-            newDevice.doorstate = deviceDetails["Devices"][i]["Attributes"][j]["Value"];
-          } else if(deviceDetails["Devices"][i]["Attributes"][j]["AttributeDisplayName"] == "name") {
-            newDevice.deviceId = deviceDetails["Devices"][i]["Attributes"][j]["Value"];
-          }
-        }
+        newDevice.model = "garagedoor";
+        newDevice.serialNumber = deviceDetails["items"][i]["serial_number"];
+        newDevice.myQDeviceId = deviceDetails["items"][i]["serial_number"];
+        newDevice.deviceId = deviceDetails["items"][i]["serial_number"];
+        newDevice.name  = deviceDetails["items"][i]["name"];
+        newDevice.targetdoorstate = deviceDetails["items"][i]["state"]["door_state"];
+        newDevice.lastdoorstate = deviceDetails["items"][i]["state"]["door_state"];
+        newDevice.doorstate = deviceDetails["items"][i]["state"]["door_state"];
         self.devices.push(newDevice);
-      } else if(deviceDetails["Devices"][i]["MyQDeviceTypeName"] == "Gateway") {
+      } else if(deviceDetails["items"][i]["device_family"] == "gateway") {
         var newDevice = new MyQHub(self, self.log);
-        newDevice.name = "MyQ Gateway";
+        newDevice.name = deviceDetails["items"][i]["name"];
         newDevice.model = "Gateway";
-        newDevice.serialNumber = deviceDetails["Devices"][i]["SerialNumber"];
-        
-        for(var j=0; j<deviceDetails["Devices"][i]["Attributes"].length; j++) {
-          if(deviceDetails["Devices"][i]["Attributes"][j]["AttributeDisplayName"] == "desc") {
-            newDevice.displayName = deviceDetails["Devices"][i]["Attributes"][j]["Value"];
-          } else if(deviceDetails["Devices"][i]["Attributes"][j]["AttributeDisplayName"] == "name") {
-            newDevice.deviceId = deviceDetails["Devices"][i]["Attributes"][j]["Value"];
-          }
-        }
+        newDevice.serialNumber = deviceDetails["items"][i]["serial_number"];
+        newDevice.displayName = deviceDetails["items"][i]["name"];
+        newDevice.deviceId = deviceDetails["items"][i]["serial_number"];
         self.devices.push(newDevice);
       }
     }
-    
+        
     callback(self.devices);
-    */
   },
 
   /**
@@ -147,20 +118,21 @@ MyQ.prototype = {
             self.SecurityToken = body.SecurityToken;
             if(self.loglevel > 0) self.log("login: Set new token [" + self.SecurityToken + "]");
           } else {
-            self.log("error: " + error);
-            self.log("response: " + response);
-            self.log("body: " + body);
+            self.log("login error: " + error);
+            self.log("login response: " + response);
+            self.log("login body: " + body);
           }
           if(callback) {
             callback();
           }
         } catch (err) {
-            self.log("error: " + error);
-            self.log("response: " + response);
-            self.log("body: " + body);
+            self.log("login error: " + error);
+            self.log("login response: " + response);
+            self.log("login body: " + body);
         }
       	
       })
+      if(self.loglevel > 1) self.log("login: method complete");  	
   },
   
   /**
@@ -186,68 +158,58 @@ MyQ.prototype = {
             self.AccountId = body.Account.Id;
             if(self.loglevel > 0) self.log("login: Set new AccountId [" + self.AccountId + "]");
           } else {
-            self.log("error: " + error);
-            self.log("response: " + response);
-            self.log("body: " + body);
+            self.log("accountId error: " + error);
+            self.log("accountId response: " + response);
+            self.log("accountId body: " + body);
           }
           if(callback) {
+            if(self.loglevel > 1) self.log("accountId: executing callback");  	
             callback();
           }
         } catch (err) {
-            self.log("error: " + error);
-            self.log("response: " + response);
-            self.log("body: " + body);
+            self.log("accountId2 error: " + err);
+            self.log("accountId2 error: " + error);
+            self.log("accountId2 response: " + response);
+            self.log("accountId2 body: " + body);
         }
       })
+      if(self.loglevel > 1) self.log("accountId: method complete");  
   },  
   
-  userDeviceDetails: function(callback) {
+  getDevices: function(callback) {
     var self = this;
-    self.log("userDeviceDetails: starting.");
-
-  	/*
-    var queryString = {
-      'appId': self.MyQApplicationId,
-      'SecurityToken': self.SecurityToken,
-      'filterOn':'true',
-      'format':'json',
-      'nojsoncallback':'1'
-    };
     
-    try {
-      request({
-        "url": "https://myqexternal.myqdevice.com/api/v4/userdevicedetails/get",
-        'qs': queryString,
-        "method": "GET",
-        "headers": {
-          'User-Agent': self.UserAgent,
-          'BrandId': self.BrandId,
-          'Culture': self.culture,
-          'MyQApplicationId': self.MyQApplicationId,
-          'SecurityToken': self.SecurityToken
-        }
+    if(self.loglevel > 1) self.log("getDevices: method start");  	
+
+    request({
+      "url": "https://api.myqdevice.com/api/v5.1/Accounts/" + self.AccountId + "/Devices",
+      "method": "GET",
+      "headers": {
+        'User-Agent': self.UserAgent,
+        'MyQApplicationId': self.MyQApplicationId,
+        'SecurityToken': self.SecurityToken
+      },
+      "json": true
       }, function(error, response, body) {
         try {
-          self.log("userDeviceDetails: got api response.");
-          var bodyJson = JSON.parse(body);
-      
-          self.log("userDeviceDetails: got results, checking callback");
-          if(callback) {
-            self.log("userDeviceDetails: making callback");
-            callback(bodyJson);
-          }        
-          
-          // self.log("error: " + error);
-          // self.log("response: " + response);
-          // self.log("body: " + body);
+          // self.log("devices got back result: " + JSON.stringify(body));
+          if(body.count > 0) {
+            if(callback) {
+              callback(body);
+            }          
+          } else {
+            self.log("getDevices error: " + error);
+            self.log("getDevices response: " + response);
+            self.log("getDevices body: " + body);
+          }
         } catch (err) {
-          self.log("userDeviceDetails: exception in response userDeviceDetails: " + err.message);
+            self.log("getDevices2 error: " + err);
+            self.log("getDevices2 error: " + error);
+            self.log("getDevices2 response: " + response);
+            self.log("getDevices2 body: " + body);
         }
-      });  
-    } catch (err) {
-      self.log("userDeviceDetails: exception in request userDeviceDetails: " + err.message);
-    }
-    */
+      })
+    if(self.loglevel > 1) self.log("getDevices: method complete");  	
   },
   
   getDeviceAttribute: function(myQDeviceId, attributeName, callback) {
